@@ -12,13 +12,20 @@ export function createApp(config: RigConfig = loadConfig()) {
 
   app.get('/health', (c) => c.json({ ok: true, lane: lane().id }));
 
-  app.get('/', (c) =>
-    c.html(
+  app.get('/', (c) => {
+    const status = readStatus(config);
+    const counts = Object.fromEntries(
+      status.nights.flatMap((n) => {
+        const d = readNight(config.runsDir, n);
+        return d ? [[n, d.counts] as const] : [];
+      }),
+    );
+    return c.html(
       <Layout title="status" lane={lane()}>
-        <StatusBoard status={readStatus(config)} />
+        <StatusBoard status={status} counts={counts} />
       </Layout>,
-    ),
-  );
+    );
+  });
 
   // Page and JSON come from the same readNight call, so they can't disagree (ADR 0001).
   app.get('/digest/:night', (c) => {
